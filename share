@@ -1,0 +1,56 @@
+#!/bin/bash
+
+DEFPORT=33333
+PORT=$DEFPORT
+DOMAIN=kuch.in
+LHOST=192.168.10.101
+DIRS=yes
+
+bname=`basename $0`
+
+if [ "$1" == "" ]; then echo Error: no file specified\! Use -h or --help for help.; exit 1; fi
+
+for param in $@
+do
+
+if [ "$param" == "-h" -o "$param" == "--help" ]; 
+    then echo -e "\n$bname - send file(s) via HTTP\n"
+    echo -e "Usage:\t$bname [option] filename(s) and/or dirname(s)\n"
+    echo -e "\tIf dirname is specified among the parameters, and '--no-dirs' option is omitted,"
+    echo -e "\tall files from this directory will be shared recurently by '$bname'"
+    echo -e "\tTo prevent '$bname' from recurently walking through all subdirectorie"
+    echo -e "\tuse '--no-subdirs' parameter (see below).\n"
+    echo -e "\t'$bname' reads file(s) using 'pv' and pipes them to 'nc' listening on port $PORT"
+    echo -e "\tOn the client side: open browther and use the following links:"
+    echo -e "\t$LHOST:$PORT  -  in local network"
+    echo -e "\t$DOMAIN:$PORT         -  in Internet\n"
+    echo -e "\tOptions:\n"
+    echo -e "\t--port=portnum"
+    echo -e "\t\tListen on specified port. The default port is $DEFPORT.\n"
+    echo -e "\t--no-subdirs"
+    echo -e "\t\tSend only files from directory specified, don't go to subdirs\n"
+    echo -e "\t--no-dirs"
+    echo -e "\t\tDon't go to directories, send only files\n"
+    exit 0
+fi
+
+
+# If directory, then share all files inside the directory
+if [ "${param:0:7}" == "--port=" ]; then PORT=${param:7}; continue; fi
+if [ "$param" == "--no-subdirs" ]; then SUBDIRS="--no-dirs"; continue; fi
+if [ "$param" == "--no-dirs" ];    then DIRS=no; continue; fi
+
+if [ ! -r $param ]; then echo Error: file \'$param\' doesn\'t exists\!; exit 1; fi
+if [   -d $param ]; then if [ "$DIRS" == "yes" ]; then for i in $param/*; do share $SUBDIRS $i; done; fi    
+
+else
+
+    filename=$param
+    fileshort=`basename $param`
+    
+    (echo -e "HTTP/1.1 200 OK\nContent-Disposition: attachment; filename=$fileshort\nContent-Type: application/octet-stream\nConnection: close\n";
+    pv "$filename" ) | nc -vv -l -p $PORT
+fi
+done
+
+exit $?
