@@ -2,7 +2,7 @@
 '''
 Program for sharing files over LAN or internet.
 It can open ports on router via ssh and redirect connections
-HTTPS can be activated through 'stunnel'
+HTTPS is supported as well as HTTP redirect to it
 '''
 
 
